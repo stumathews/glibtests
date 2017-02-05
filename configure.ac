@@ -1,6 +1,6 @@
  
 AC_PREREQ([2.67])
-AC_INIT([glibtest], [0.1], [fakeaddress@foo.net])
+AC_INIT([glib_test], [0.1], [fakeaddress@foo.net])
 AM_INIT_AUTOMAKE([foreign]) 
 AC_CONFIG_SRCDIR([])
 AC_CONFIG_HEADERS([config.h])
