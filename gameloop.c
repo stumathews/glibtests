@@ -8,129 +8,10 @@
 #define TICK_TIME 50
 #define MAX_LOOPS 4
 
-/***
- * Keeps and updated snapshot of the player state
- */
-void player_update()
-{
-	sense_player_input();
-	determine_restrictions();
-	update_player_state();
-}
-
-/***
- * Updates, monitors what the world is doing around the player. This is usually what the player reacts to
- */
-void world_update()
-{
-	update_passive_elements();
-	update_active_elements();
-
-}
-
-void GameTickRun()
-{
-	puts("GameTick ran.");
-
-	// This game logic keeps the world simulator running:
-	player_update();
-	world_update();
-}
-
-
-
-/***
- * Update elements such as walls, and scenario items. These belong to the game world but dont have any
- * attached behavior
- */
-void update_passive_elements()
-{
-	pre_select_active_zones();
-}
-
-void pre_select_active_zones()
-{
-
-}
-
-/***
- * Update active elements such as decorative flying birds or doors that open and close
- */
-void update_active_elements()
-{
-	update_logic_based_elements();
-	update_ai_based_elements();
-}
-
-/***
- * Update simple logical elements such as doors, elevators or moving platforms
- */
-void update_logic_based_elements()
-{
-	logic_sort_according_to_relevance();
-	execute_control_mechanism();
-	update_state();
-}
-
-void logic_sort_according_to_relevance(){}
-void execute_control_mechanism(){}
-void update_state(){}
-
-/**
- * Update elements that have intelligence like enemies with distinctive behavior
- */
-void update_ai_based_elements()
-{
-	ai_sort_according_to_gamplay_relevance();
-	sense_internal_state_and_goals();
-	sense_restrictions();
-	decision_engine();
-	update_world_data_structure();
-}
-
-/***
- * update the word state based on all the above having been done/happened/occured
- * If shot, mark enemy as hit
- */
-void update_world_data_structure()
-{
-
-}
-
-/***
- * Generate behavior rules. The plane will turn, then try to shoot
- */
-void decision_engine()
-{
-
-}
-/***
- * the overall restrictions that apply
- */
-void sense_restrictions()
-{
-
-}
-
-/***
- * goals and current state must be analysed
- *	goals: shoot down aircraft.
- *	state: amount of ammo, direction of aircraft, state of weaponry
- */
-void sense_internal_state_and_goals()
-{
-
-}
-
-/***
- * An enemy 10 miles away is not important, nor is a door on another level - filter it out.
- */
-void ai_sort_according_to_gamplay_relevance()
-{
-
-}
-
-
+struct GameWorldData {} *gameworld_data;
+int frameTicks;
+int numLoops;
+long tickCountAtLastCall,newTime;
 
 /***
  * Check for interactoon requests from controllers
@@ -167,6 +48,135 @@ void update_player_state()
 
 }
 
+/***
+ * Keeps and updated snapshot of the player state
+ */
+void player_update()
+{
+	sense_player_input();
+	determine_restrictions(gameworld_data);
+	update_player_state();
+}
+
+/***
+ * Select passive elements
+ */
+void pre_select_active_zones()
+{
+
+}
+
+/***
+ * Update elements such as walls, and scenario items. These belong to the game world but dont have any
+ * attached behavior
+ */
+void update_passive_elements()
+{
+	pre_select_active_zones();
+}
+
+
+
+void logic_sort_according_to_relevance(){}
+void execute_control_mechanism(){}
+void update_state(){}
+
+/***
+ * Update simple logical elements such as doors, elevators or moving platforms
+ */
+void update_logic_based_elements()
+{
+	logic_sort_according_to_relevance();
+	execute_control_mechanism();
+	update_state();
+}
+
+
+
+/***
+ * update the word state based on all the above having been done/happened/occured
+ * If shot, mark enemy as hit
+ */
+void update_world_data_structure()
+{
+
+}
+
+/***
+ * Generate behavior rules. The plane will turn, then try to shoot
+ */
+void decision_engine()
+{
+
+}
+
+
+/***
+ * the overall restrictions that apply
+ */
+void sense_restrictions()
+{
+
+}
+
+/***
+ * goals and current state must be analysed
+ *	goals: shoot down aircraft.
+ *	state: amount of ammo, direction of aircraft, state of weaponry
+ */
+void sense_internal_state_and_goals()
+{
+
+}
+
+/***
+ * An enemy 10 miles away is not important, nor is a door on another level - filter it out.
+ */
+void ai_sort_according_to_gamplay_relevance()
+{
+
+}
+
+/**
+ * Update elements that have intelligence like enemies with distinctive behavior
+ */
+void update_ai_based_elements()
+{
+	ai_sort_according_to_gamplay_relevance();
+	sense_internal_state_and_goals();
+	sense_restrictions();
+	decision_engine();
+	update_world_data_structure();
+}
+
+/***
+ * Update active elements such as decorative flying birds or doors that open and close
+ */
+void update_active_elements()
+{
+	update_logic_based_elements();
+	update_ai_based_elements();
+}
+
+/***
+ * Updates, monitors what the world is doing around the player. This is usually what the player reacts to
+ */
+void world_update()
+{
+	update_passive_elements();
+	update_active_elements();
+
+}
+
+void GameTickRun()
+{
+	puts("GameTick ran.");
+
+	// This game logic keeps the world simulator running:
+	player_update();
+	world_update();
+}
+
 // Gets time in milliseconds now
 long ticks()
 {
@@ -178,70 +188,10 @@ void IndependantTickRun(long frameTime)
 	printf("IndependantTickRun() run. FrameTime=%f\n",frameTime);
 }
 
-/***
- * Render the game world (Presentation)
- * @param percentWithinTick
- */
-void GameDrawWithInterpolation(float percentWithinTick)
-{
-	printf("GameDrawWithInterpolation() run. percentWithinTick=%f\n",percentWithinTick);
-	World_Presentation();
-	NPC_Presentation();
-	Player_Presentation();
-
-}
-
-/***
- * Render player.
- * The player is always visible.
- * Simplier graphics pipeline to NPC and Passive elements
- * no LOD determination - hero is always drawn in High-resoluton meshes
- */
-void Player_Presentation()
-{
-	player_animate();
-	player_data_pack();
-	player_render_data();
-}
 
 
-/***
- * Send player's geometry to the hardware for processing
- */
-void player_render_data()
-{
 
-}
-/***
- * Pack player's geometry into efficient format
- */
-void player_data_pack()
-{
 
-}
-/***
- * Produce static geometry data that represents the current snapshot of how the player must look
- * for a given frame.
- *
- * The main animation routines are computed.
- * keyframed to skeletal animations
- */
-void player_animate()
-{
-
-}
-
-/***
- * Render characters (Non passive Characters)
- * These are animated active elements, usually characters such as enemies
- */
-void NPC_Presentation()
-{
-	npc_select_visible_subset();
-	npc_animate();
-	npc_pack_data();
-	npc_render_data();
-}
 
 /***
  * Main graphics pipe line for NPC rendering.
@@ -278,6 +228,57 @@ void npc_animate()
 void npc_select_visible_subset()
 {
 
+}
+
+/***
+ * Render characters (Non passive Characters)
+ * These are animated active elements, usually characters such as enemies
+ */
+void NPC_Presentation()
+{
+	npc_select_visible_subset();
+	npc_animate();
+	npc_pack_data();
+	npc_render_data();
+}
+
+/***
+ * Send player's geometry to the hardware for processing
+ */
+void player_render_data()
+{
+
+}
+/***
+ * Pack player's geometry into efficient format
+ */
+void player_data_pack()
+{
+
+}
+/***
+ * Produce static geometry data that represents the current snapshot of how the player must look
+ * for a given frame.
+ *
+ * The main animation routines are computed.
+ * keyframed to skeletal animations
+ */
+void player_animate()
+{
+
+}
+
+/***
+ * Render player.
+ * The player is always visible.
+ * Simplier graphics pipeline to NPC and Passive elements
+ * no LOD determination - hero is always drawn in High-resoluton meshes
+ */
+void Player_Presentation()
+{
+	player_animate();
+	player_data_pack();
+	player_render_data();
 }
 
 
@@ -372,11 +373,20 @@ void World_Presentation()
 	world_send_audio_data_to_audio_hardware();
 }
 
+/***
+ * Render the game world (Presentation)
+ * @param percentWithinTick
+ */
+void GameDrawWithInterpolation(float percentWithinTick)
+{
+	printf("GameDrawWithInterpolation() run. percentWithinTick=%f\n",percentWithinTick);
+	World_Presentation();
+	NPC_Presentation();
+	Player_Presentation();
+
+}
 
 
-int frameTicks;
-int numLoops;
-long tickCountAtLastCall,newTime;
 int main(int argc, char **argv)
 {
 	gboolean bGameDone = FALSE;
