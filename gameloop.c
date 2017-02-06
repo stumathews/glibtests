@@ -8,13 +8,14 @@
 #define TICK_TIME 50
 #define MAX_LOOPS 4
 
-void GameTickRun()
+/***
+ * Keeps and updated snapshot of the player state
+ */
+void player_update()
 {
-	puts("GameTick ran.");
-
-	// This game logic keeps the world simulator running:
-	player_update();
-	world_update();
+	sense_player_input();
+	determine_restrictions();
+	update_player_state();
 }
 
 /***
@@ -26,6 +27,17 @@ void world_update()
 	update_active_elements();
 
 }
+
+void GameTickRun()
+{
+	puts("GameTick ran.");
+
+	// This game logic keeps the world simulator running:
+	player_update();
+	world_update();
+}
+
+
 
 /***
  * Update elements such as walls, and scenario items. These belong to the game world but dont have any
@@ -118,15 +130,7 @@ void ai_sort_according_to_gamplay_relevance()
 
 }
 
-/***
- * Keeps and updated snapshot of the player state
- */
-void player_update()
-{
-	sense_player_input();
-	determine_restrictions();
-	update_player_state();
-}
+
 
 /***
  * Check for interactoon requests from controllers
@@ -275,23 +279,7 @@ void npc_select_visible_subset()
 {
 
 }
-/***
- * Render the game work visually and sonically
- */
-void World_Presentation()
-{
-	world_select_visible_graphic_elements();
-	world_select_resolution();
 
-	// Send graphics to graphics card
-	world_pack_geometry();
-	world_render_geometry();
-
-	// Send audio to sound card
-	world_select_audible_sound_sources();
-	world_pack_audio_data();
-	world_send_audio_data_to_audio_hardware();
-}
 
 /***
  * Send packed audio data to sound hardware(sound card)
@@ -323,6 +311,7 @@ void world_pack_geometry()
 
 }
 
+
 /***
  * Send packed goemetry to hardware for processing.
  * Eg. OpenGL,Direct3D
@@ -330,16 +319,6 @@ void world_pack_geometry()
 void world_render_geometry()
 {
 
-}
-/***
- * filter away invisible or irrelevant elements to reduce render overhead.
- * Main graphics pipeline.
- */
-void world_select_visible_graphic_elements()
-{
-	world_elements_clip();
-	world_elements_cull();
-	world_elements_occulude();
 }
 
 void world_elements_clip()
@@ -354,6 +333,19 @@ void world_elements_occulude()
 {
 
 }
+
+/***
+ * filter away invisible or irrelevant elements to reduce render overhead.
+ * Main graphics pipeline.
+ */
+void world_select_visible_graphic_elements()
+{
+	world_elements_clip();
+	world_elements_cull();
+	world_elements_occulude();
+}
+
+
 /***
  * Determine from elements'd chacracteristics (distance etc) the LOD to be used
  */
@@ -361,6 +353,26 @@ void world_select_resolution()
 {
 
 }
+
+/***
+ * Render the game work visually and sonically
+ */
+void World_Presentation()
+{
+	world_select_visible_graphic_elements();
+	world_select_resolution();
+
+	// Send graphics to graphics card
+	world_pack_geometry();
+	world_render_geometry();
+
+	// Send audio to sound card
+	world_select_audible_sound_sources();
+	world_pack_audio_data();
+	world_send_audio_data_to_audio_hardware();
+}
+
+
 
 int frameTicks;
 int numLoops;
