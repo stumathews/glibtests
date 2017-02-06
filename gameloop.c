@@ -174,9 +174,192 @@ void IndependantTickRun(long frameTime)
 	printf("IndependantTickRun() run. FrameTime=%f\n",frameTime);
 }
 
+/***
+ * Render the game world (Presentation)
+ * @param percentWithinTick
+ */
 void GameDrawWithInterpolation(float percentWithinTick)
 {
 	printf("GameDrawWithInterpolation() run. percentWithinTick=%f\n",percentWithinTick);
+	World_Presentation();
+	NPC_Presentation();
+	Player_Presentation();
+
+}
+
+/***
+ * Render player.
+ * The player is always visible.
+ * Simplier graphics pipeline to NPC and Passive elements
+ * no LOD determination - hero is always drawn in High-resoluton meshes
+ */
+void Player_Presentation()
+{
+	player_animate();
+	player_data_pack();
+	player_render_data();
+}
+
+
+/***
+ * Send player's geometry to the hardware for processing
+ */
+void player_render_data()
+{
+
+}
+/***
+ * Pack player's geometry into efficient format
+ */
+void player_data_pack()
+{
+
+}
+/***
+ * Produce static geometry data that represents the current snapshot of how the player must look
+ * for a given frame.
+ *
+ * The main animation routines are computed.
+ * keyframed to skeletal animations
+ */
+void player_animate()
+{
+
+}
+
+/***
+ * Render characters (Non passive Characters)
+ * These are animated active elements, usually characters such as enemies
+ */
+void NPC_Presentation()
+{
+	npc_select_visible_subset();
+	npc_animate();
+	npc_pack_data();
+	npc_render_data();
+}
+
+/***
+ * Main graphics pipe line for NPC rendering.
+ * Send packed NPC geometry to hardware.
+ */
+void npc_render_data()
+{
+
+}
+
+/***
+ * Pack generated NPC geometry data (from the animation step) for this frame into an efficient format
+ */
+void npc_pack_data()
+{
+
+}
+
+/***
+ * Produce static geometry data that represents the current snapshot of how the character must look
+ * for a given frame.
+ *
+ * The main animation routines are computed.
+ * keyframed to skeletal animations *
+ */
+void npc_animate()
+{
+
+}
+
+/***
+ * Select NPCs that are visible as they should be rendered only. Ignore those behind you or on other levels
+ */
+void npc_select_visible_subset()
+{
+
+}
+/***
+ * Render the game work visually and sonically
+ */
+void World_Presentation()
+{
+	world_select_visible_graphic_elements();
+	world_select_resolution();
+
+	// Send graphics to graphics card
+	world_pack_geometry();
+	world_render_geometry();
+
+	// Send audio to sound card
+	world_select_audible_sound_sources();
+	world_pack_audio_data();
+	world_send_audio_data_to_audio_hardware();
+}
+
+/***
+ * Send packed audio data to sound hardware(sound card)
+ */
+void world_send_audio_data_to_audio_hardware()
+{
+
+}
+
+/***
+ * Pack audio data into efficient format
+ */
+void world_pack_audio_data()
+{
+
+}
+/***
+ * Select audible sources using typically distance vs volume metric
+ */
+void world_select_audible_sound_sources()
+{
+
+}
+/**
+ * Store geometry in an efficient format
+ */
+void world_pack_geometry()
+{
+
+}
+
+/***
+ * Send packed goemetry to hardware for processing.
+ * Eg. OpenGL,Direct3D
+ */
+void world_render_geometry()
+{
+
+}
+/***
+ * filter away invisible or irrelevant elements to reduce render overhead.
+ * Main graphics pipeline.
+ */
+void world_select_visible_graphic_elements()
+{
+	world_elements_clip();
+	world_elements_cull();
+	world_elements_occulude();
+}
+
+void world_elements_clip()
+{
+
+}
+void world_elements_cull()
+{
+
+}
+void world_elements_occulude()
+{
+
+}
+/***
+ * Determine from elements'd chacracteristics (distance etc) the LOD to be used
+ */
+void world_select_resolution()
+{
+
 }
 
 int frameTicks;
