@@ -12,6 +12,7 @@
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
+
 struct GameWorldData {} *gameworld_data;
 int frameTicks;
 int numLoops;
@@ -25,6 +26,40 @@ void sense_player_input()
 	//Map controller actions to meanings for the game:
 	// left button was pushed and button A was pressed MEANS -> request to move character left
 	// while shooting active weapon.
+
+	//Event handler
+	SDL_Event e;
+	while(SDL_PollEvent(&e) != 0)
+	{
+		//User requests quit
+		CHK_ExitIf(e.type == SDL_QUIT , "player quit window", "player exit");
+		if( e.type == SDL_KEYDOWN )
+		{
+			//Select surfaces based on key press
+			switch( e.key.keysym.sym )
+			{
+				case SDLK_UP:
+				puts("up!");
+				break;
+
+				case SDLK_DOWN:
+					puts("down!");
+				break;
+
+				case SDLK_LEFT:
+					puts("left!");
+				break;
+
+				case SDLK_RIGHT:
+					puts("right!");
+				break;
+
+				default:
+					puts("something else!");
+				break;
+			}
+		}
+	}
 }
 
 /***
@@ -174,7 +209,6 @@ void world_update()
 
 void GameTickRun()
 {
-	puts("gamerickrun()");
 	// This game logic keeps the world simulator running:
 	player_update();
 	world_update();
@@ -388,31 +422,54 @@ void GameDrawWithInterpolation(float percentWithinTick)
 }
 
 
-SDL_Texture* loadTexture(char* path, SDL_Renderer* renderer)
+SDL_Texture* loadCreateTexture(char* texturePath, SDL_Renderer* renderer)
 {
-	//The final texture
 	SDL_Texture* newTexture = NULL;
+	SDL_Surface* imageSurface = IMG_Load(texturePath);
+	CHK_ExitIf(imageSurface == NULL,"SDL could not load image!",IMG_GetError());
 
-	//Load image at specified path
-	SDL_Surface* loadedSurface = IMG_Load(path);
-	if (loadedSurface == NULL)
-	{
-		printf("Unable to load image %s! SDL_image Error: %s\n", path, IMG_GetError());
-	}
-	else
-	{
-		//Create texture from surface pixels
-		newTexture = SDL_CreateTextureFromSurface(renderer, loadedSurface);
-		if (newTexture == NULL)
-		{
-			printf("Unable to create texture from %s! SDL Error: %s\n", path, SDL_GetError());
-		}
+	//Create texture from surface pixels
+	newTexture = SDL_CreateTextureFromSurface(renderer, imageSurface);
+	CHK_ExitIf(newTexture == NULL,"Unable to create texture!",SDL_GetError());
 
-		//Get rid of old loaded surface
-		SDL_FreeSurface(loadedSurface);
-	}
-
+	//Get rid of old loaded surface
+	SDL_FreeSurface(imageSurface);
 	return newTexture;
+}
+
+SDL_Window* GetSDLWindow(const int SCREEN_WIDTH, const int SCREEN_HEIGHT, SDL_Window* outWindow)
+{
+	outWindow = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED,
+				SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT,
+				SDL_WINDOW_SHOWN);
+	CHK_ExitIf(outWindow == NULL, "Window could not be created!", SDL_GetError());
+	return outWindow;
+}
+
+SDL_Renderer* GetSDLWindowRenderer(SDL_Renderer* outRenderer, SDL_Window* window)
+{
+	outRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	CHK_ExitIf(outRenderer == NULL, "Renderer could not be created!",
+			SDL_GetError());
+	SDL_SetRenderDrawColor(outRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	return outRenderer;
+}
+
+SDL_Texture* GetSDLTexture(SDL_Texture* outTexture, SDL_Renderer* windowRenderer)
+{
+	outTexture = loadCreateTexture("texture.png", windowRenderer);
+	CHK_ExitIf(outTexture == NULL, "could not load textture", "outTexture");
+	return outTexture;
+}
+
+void renderTextture(SDL_Renderer* toRenderer, SDL_Texture* texture)
+{
+	//Clear screen
+	SDL_RenderClear(toRenderer);
+	//Render texture to renderer
+	SDL_RenderCopy(toRenderer, texture, NULL, NULL);
+	//Update rendrer
+	SDL_RenderPresent(toRenderer);
 }
 
 int main(int argc, char *args[])
@@ -425,20 +482,16 @@ int main(int argc, char *args[])
 	gboolean bNetworkGame = FALSE;
 	gboolean bCanRender = TRUE;
 
+	// Initialise SDL
 	CHK_ExitIf(SDL_Init(SDL_INIT_VIDEO) < 0,"SDL could not initialize!",SDL_GetError());
 
-	window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-	CHK_ExitIf(window == NULL, "Window could not be created!",SDL_GetError());
+	window = GetSDLWindow(SCREEN_WIDTH, SCREEN_HEIGHT, window);
+	windowRenderer = GetSDLWindowRenderer(windowRenderer, window);
 
-	windowRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-	CHK_ExitIf(windowRenderer == NULL, "Renderer could not be created!",SDL_GetError());
-
-	SDL_SetRenderDrawColor(windowRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	// Initialize SDL Image extension
 	CHK_ExitIf(!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG), "SDL_image could not initialize!",IMG_GetError());
 
-	//Load PNG texture
-	texture = loadTexture("texture.png", windowRenderer);
-	CHK_ExitIf(texture == NULL, "could not load textture","texture");
+	texture = GetSDLTexture(texture, windowRenderer);
 
 	tickCountAtLastCall = ticks();
 
@@ -465,16 +518,7 @@ int main(int argc, char *args[])
 		if(bCanRender) {
 			float percentOutsideFrame = (ticksSince/TICK_TIME)*100;
 			GameDrawWithInterpolation(percentOutsideFrame);
-			//
-			//Clear screen
-			SDL_RenderClear(windowRenderer);
-
-			//Render texture to screen
-			SDL_RenderCopy(windowRenderer, texture, NULL, NULL);
-
-			//Update screen
-			SDL_RenderPresent(windowRenderer);
-			//
+			renderTextture(windowRenderer, texture);
 		}
 
 	}
