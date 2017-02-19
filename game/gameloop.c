@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <windows.h>
 #include <SDL2/SDL.h>
 #include <glib.h>
 
@@ -171,6 +170,7 @@ void world_update()
 
 void GameTickRun()
 {
+	puts("gamerickrun()");
 	// This game logic keeps the world simulator running:
 	player_update();
 	world_update();
@@ -179,12 +179,12 @@ void GameTickRun()
 // Gets time in milliseconds now
 long ticks()
 {
-	return timeGetTime();
+	return g_get_real_time();
 }
 
 void IndependantTickRun(long frameTime)
 {
-//	printf("IndependantTickRun() run. FrameTime=%f\n",frameTime);
+	// fetch input from SDL
 }
 
 
@@ -384,14 +384,16 @@ void GameDrawWithInterpolation(float percentWithinTick)
 	Player_Presentation();
 }
 
+
+
+
 int main(int argc, char *args[])
 {
+	SDL_Window* window = NULL;
+	SDL_Surface* screenSurface = NULL;
 	gboolean bGameDone = FALSE;
 	gboolean bNetworkGame = FALSE;
 	gboolean bCanRender = TRUE;
-
-        SDL_Init( SDL_INIT_EVERYTHING );
-        SDL_Quit();
 
 	tickCountAtLastCall = ticks();
 
@@ -401,14 +403,13 @@ int main(int argc, char *args[])
 		numLoops = 0;
 		long ticksSince = newTime - tickCountAtLastCall;
 
-		// New frame, happens consistently every 50 milliseconds. Ie 20 times a second. 
+		// New frame, happens consistently every 50 milliseconds. Ie 20 times a second.
 		while((ticksSince) > TICK_TIME && numLoops < MAX_LOOPS ) {
-			puts("\nCalculating new frame's changes");
 			GameTickRun(); // logic/update
+
 			// tickCountAtLastCall is now been +TICK_TIME more since the last time. update it
 			tickCountAtLastCall += TICK_TIME;
 
-			
 			frameTicks += TICK_TIME; numLoops++;
 			ticksSince = newTime - tickCountAtLastCall;
 			printf("done\n");
