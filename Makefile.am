@@ -1,4 +1,4 @@
-bin_PROGRAMS = glib_test lists gameloop
+bin_PROGRAMS = glib_test lists
  
 glib_test_SOURCES = glib_test.c
 glib_test_CFLAGS =  $(GLIB_CFLAGS)
@@ -8,6 +8,3 @@ lists_SOURCES = lists.c
 lists_CFLAGS =  $(GLIB_CFLAGS)
 lists_LDADD = $(GLIB_LIBS)
 
-gameloop_SOURCES = gameloop.c
-gameloop_CFLAGS =  $(GLIB_CFLAGS)
-gameloop_LDADD = $(GLIB_LIBS) -lwinmm

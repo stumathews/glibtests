@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <windows.h>
+#include <SDL2/SDL.h>
 #include <glib.h>
 
 // 20 times a second = 50 milliseconds
@@ -170,8 +171,6 @@ void world_update()
 
 void GameTickRun()
 {
-	puts("GameTick ran.");
-
 	// This game logic keeps the world simulator running:
 	player_update();
 	world_update();
@@ -185,7 +184,7 @@ long ticks()
 
 void IndependantTickRun(long frameTime)
 {
-	printf("IndependantTickRun() run. FrameTime=%f\n",frameTime);
+//	printf("IndependantTickRun() run. FrameTime=%f\n",frameTime);
 }
 
 
@@ -379,39 +378,47 @@ void World_Presentation()
  */
 void GameDrawWithInterpolation(float percentWithinTick)
 {
-	printf("GameDrawWithInterpolation() run. percentWithinTick=%f\n",percentWithinTick);
+	//printf("GameDrawWithInterpolation() run. percentWithinTick=%f\n",percentWithinTick);
 	World_Presentation();
 	NPC_Presentation();
 	Player_Presentation();
-
 }
 
-
-int main(int argc, char **argv)
+int main(int argc, char *args[])
 {
 	gboolean bGameDone = FALSE;
 	gboolean bNetworkGame = FALSE;
 	gboolean bCanRender = TRUE;
 
+        SDL_Init( SDL_INIT_EVERYTHING );
+        SDL_Quit();
+
 	tickCountAtLastCall = ticks();
+
 	while(!bGameDone) {
 		newTime = ticks();
 		frameTicks = 0;
 		numLoops = 0;
 		long ticksSince = newTime - tickCountAtLastCall;
+
+		// New frame, happens consistently every 50 milliseconds. Ie 20 times a second. 
 		while((ticksSince) > TICK_TIME && numLoops < MAX_LOOPS ) {
+			puts("\nCalculating new frame's changes");
 			GameTickRun(); // logic/update
 			// tickCountAtLastCall is now been +TICK_TIME more since the last time. update it
 			tickCountAtLastCall += TICK_TIME;
 
+			
 			frameTicks += TICK_TIME; numLoops++;
 			ticksSince = newTime - tickCountAtLastCall;
+			printf("done\n");
 		}
 		IndependantTickRun(frameTicks); // handle player input, general housekeeping
 		if(!bNetworkGame && (ticksSince > TICK_TIME))
 			tickCountAtLastCall = newTime - TICK_TIME;
 		if(bCanRender) {
 			float percentOutsideFrame = (ticksSince/TICK_TIME)*100;
+			printf("d");
 			GameDrawWithInterpolation(percentOutsideFrame);
 		}
 
