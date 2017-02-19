@@ -71,7 +71,7 @@ AUTOCONF = ${SHELL} /c/Users/Stuart/git/glibtests/missing --run autoconf
 AUTOHEADER = ${SHELL} /c/Users/Stuart/git/glibtests/missing --run autoheader
 AUTOMAKE = ${SHELL} /c/Users/Stuart/git/glibtests/missing --run automake-1.11
 AWK = gawk
-CC = gcc
+CC = gcc -std=gnu99
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
 CPPFLAGS = 
@@ -108,9 +108,9 @@ PACKAGE_VERSION = 0.1
 PATH_SEPARATOR = :
 PKG_CONFIG = /c/gtk+/bin/pkg-config
 PKG_CONFIG_LIBDIR = 
-PKG_CONFIG_PATH = /usr/local/lib/pkgconfig
-SDL2_CFLAGS = -Dmain=SDL_main -IC:/MinGW/msys/1.0/local/include/SDL2  
-SDL2_LIBS = -mwindows -LC:/MinGW/msys/1.0/local/lib -lmingw32 -lSDL2main -lSDL2  
+PKG_CONFIG_PATH = /lib/pkgconfig
+SDL2_CFLAGS = -Dmain=SDL_main -IC:/MinGW/msys/1.0/include/SDL2  
+SDL2_LIBS = -mwindows -LC:/MinGW/msys/1.0/lib -lmingw32 -lSDL2main -lSDL2  
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 

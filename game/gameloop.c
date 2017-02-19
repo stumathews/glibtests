@@ -13,15 +13,30 @@ const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
 
-struct GameWorldData {} *gameworld_data;
+struct GameWorldData {
+	int x;
+	int y;
+	int w;
+	int h;
+	SDL_Window* window;
+	SDL_Renderer* windowRenderer;
+	gboolean bGameDone;
+	gboolean bNetworkGame;
+	gboolean bCanRender;
+} *gameworld_data;
+typedef struct GameWorldData GameWorldData;
+
 int frameTicks;
 int numLoops;
 long tickCountAtLastCall,newTime;
 
+SDL_Rect renderRectangle(const int x, const int y, const int w, const int h, struct GameWorldData *gameWorldData);
+void renderLine(SDL_Renderer* toRenderer);
+
 /***
  * Check for interactoon requests from controllers
  */
-void sense_player_input()
+void sense_player_input(struct GameWorldData *gameWorldData)
 {
 	//Map controller actions to meanings for the game:
 	// left button was pushed and button A was pressed MEANS -> request to move character left
@@ -31,27 +46,31 @@ void sense_player_input()
 	SDL_Event e;
 	while(SDL_PollEvent(&e) != 0)
 	{
-		//User requests quit
-		CHK_ExitIf(e.type == SDL_QUIT , "player quit window", "player exit");
-		if( e.type == SDL_KEYDOWN )
+
+		if(e.type == SDL_QUIT)
 		{
-			//Select surfaces based on key press
+			gameWorldData->bGameDone = 1;
+		} else if( e.type == SDL_KEYDOWN ) {
 			switch( e.key.keysym.sym )
 			{
 				case SDLK_UP:
-				puts("up!");
+					puts("up!");
+					gameWorldData->y -= 20;
 				break;
 
 				case SDLK_DOWN:
 					puts("down!");
+					gameWorldData->y += 20;
 				break;
 
 				case SDLK_LEFT:
 					puts("left!");
+					gameWorldData->x -= 20;
 				break;
 
 				case SDLK_RIGHT:
 					puts("right!");
+					gameWorldData->x += 20;
 				break;
 
 				default:
@@ -90,9 +109,9 @@ void update_player_state()
 /***
  * Keeps and updated snapshot of the player state
  */
-void player_update()
+void player_update(struct GameWorldData *gameWorldData)
 {
-	sense_player_input();
+	sense_player_input(gameWorldData);
 	determine_restrictions(gameworld_data);
 	update_player_state();
 }
@@ -207,10 +226,10 @@ void world_update()
 
 }
 
-void GameTickRun()
+void GameTickRun(struct GameWorldData *gameWorldData)
 {
 	// This game logic keeps the world simulator running:
-	player_update();
+	player_update(gameWorldData);
 	world_update();
 }
 
@@ -392,6 +411,25 @@ void world_select_resolution()
 }
 
 /***
+ * Send audio to sound card
+ */
+void send_audio_to_hardware()
+{
+	world_select_audible_sound_sources();
+	world_pack_audio_data();
+	world_send_audio_data_to_audio_hardware();
+}
+
+/***
+ * Send graphics to graphics card
+ */
+void send_geometry_to_hardware()
+{
+	world_pack_geometry();
+	world_render_geometry();
+}
+
+/***
  * Render the game work visually and sonically
  */
 void World_Presentation()
@@ -399,103 +437,166 @@ void World_Presentation()
 	world_select_visible_graphic_elements();
 	world_select_resolution();
 
-	// Send graphics to graphics card
-	world_pack_geometry();
-	world_render_geometry();
+	send_geometry_to_hardware();
+	send_audio_to_hardware();
+}
 
-	// Send audio to sound card
-	world_select_audible_sound_sources();
-	world_pack_audio_data();
-	world_send_audio_data_to_audio_hardware();
+void drawVerticalLineOfDots(const int SCREEN_HEIGHT, const int SCREEN_WIDTH,struct GameWorldData *gameWorldData)
+{
+	//Draw vertical line of yellow dots
+	SDL_SetRenderDrawColor(gameWorldData->windowRenderer, 0x00, 0x00, 0xFF, 0x00);
+	for (int i = 0; i < SCREEN_HEIGHT; i += 4) {
+		SDL_RenderDrawPoint(gameWorldData->windowRenderer, SCREEN_WIDTH / 2, i);
+	}
 }
 
 /***
  * Render the game world (Presentation)
  * @param percentWithinTick
  */
-void GameDrawWithInterpolation(float percentWithinTick)
+void GameDrawWithInterpolation(float percentWithinTick, struct GameWorldData *gameWorldData)
 {
-	//printf("GameDrawWithInterpolation() run. percentWithinTick=%f\n",percentWithinTick);
+	//Custom SDL drawing...
+	// renderTextture(windowRenderer, texture);
+
+	SDL_Rect fillRect = renderRectangle(gameWorldData->x, gameWorldData->y, 100,100, gameWorldData);
+	renderLine(gameWorldData->windowRenderer);
+	drawVerticalLineOfDots(SCREEN_HEIGHT, SCREEN_WIDTH, gameWorldData);
+	SDL_RenderPresent(gameWorldData->windowRenderer);
+
 	World_Presentation();
 	NPC_Presentation();
 	Player_Presentation();
 }
 
+SDL_Rect renderRectangle(const int x, const int y, const int w, const int h, struct GameWorldData *gameWorldData)
+{
+	SDL_Renderer *toRenderer = gameWorldData->windowRenderer;
+	SDL_SetRenderDrawColor(toRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	SDL_RenderClear(toRenderer);
+
+	SDL_Rect fillRect = { x , y , w, h };
+	SDL_SetRenderDrawColor(toRenderer, 0xFF, 0x00, 0x00, 0xFF);
+	SDL_RenderFillRect(toRenderer, &fillRect);
+
+	return fillRect;
+}
 
 SDL_Texture* loadCreateTexture(char* texturePath, SDL_Renderer* renderer)
 {
 	SDL_Texture* newTexture = NULL;
 	SDL_Surface* imageSurface = IMG_Load(texturePath);
-	CHK_ExitIf(imageSurface == NULL,"SDL could not load image!",IMG_GetError());
+	CHK_ExitIf(imageSurface == NULL,"SDL could not load image!",(char*)IMG_GetError());
 
 	//Create texture from surface pixels
 	newTexture = SDL_CreateTextureFromSurface(renderer, imageSurface);
-	CHK_ExitIf(newTexture == NULL,"Unable to create texture!",SDL_GetError());
+	CHK_ExitIf(newTexture == NULL,"Unable to create texture!",(char*)SDL_GetError());
 
 	//Get rid of old loaded surface
 	SDL_FreeSurface(imageSurface);
 	return newTexture;
 }
 
-SDL_Window* GetSDLWindow(const int SCREEN_WIDTH, const int SCREEN_HEIGHT, SDL_Window* outWindow)
+SDL_Window* GetSDLWindow(const int SCREEN_WIDTH, const int SCREEN_HEIGHT)
 {
-	outWindow = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED,
+	SDL_Window* outWindow = SDL_CreateWindow("Game Window", SDL_WINDOWPOS_UNDEFINED,
 				SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT,
 				SDL_WINDOW_SHOWN);
-	CHK_ExitIf(outWindow == NULL, "Window could not be created!", SDL_GetError());
+	CHK_ExitIf(outWindow == NULL, "Window could not be created!",(char*)SDL_GetError());
 	return outWindow;
 }
 
-SDL_Renderer* GetSDLWindowRenderer(SDL_Renderer* outRenderer, SDL_Window* window)
+SDL_Renderer* GetSDLWindowRenderer(SDL_Window* window)
 {
-	outRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-	CHK_ExitIf(outRenderer == NULL, "Renderer could not be created!",
-			SDL_GetError());
+	SDL_Renderer* outRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	CHK_ExitIf(outRenderer == NULL, "Renderer could not be created!", (char*)SDL_GetError());
 	SDL_SetRenderDrawColor(outRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 	return outRenderer;
 }
 
-SDL_Texture* GetSDLTexture(SDL_Texture* outTexture, SDL_Renderer* windowRenderer)
+SDL_Texture* GetSDLTexture(char* path, SDL_Renderer* windowRenderer)
 {
-	outTexture = loadCreateTexture("texture.png", windowRenderer);
+	CHK_ExitIf(path == NULL, "textture path cant be empty!", "no path given");
+	SDL_Texture* outTexture = loadCreateTexture(path, windowRenderer);
 	CHK_ExitIf(outTexture == NULL, "could not load textture", "outTexture");
 	return outTexture;
 }
 
+void renderLine(SDL_Renderer* toRenderer)
+{
+	 //Draw blue horizontal line
+	SDL_SetRenderDrawColor( toRenderer, 0x00, 0x00, 0xFF, 0xFF );
+	SDL_RenderDrawLine( toRenderer, 0, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT / 2 );
+}
+
 void renderTextture(SDL_Renderer* toRenderer, SDL_Texture* texture)
 {
-	//Clear screen
 	SDL_RenderClear(toRenderer);
+
 	//Render texture to renderer
 	SDL_RenderCopy(toRenderer, texture, NULL, NULL);
+
 	//Update rendrer
 	SDL_RenderPresent(toRenderer);
 }
 
-int main(int argc, char *args[])
+
+
+void InitSDL()
 {
-	SDL_Window* window = NULL;
-	SDL_Surface* screenSurface = NULL;
-	SDL_Renderer* windowRenderer = NULL;
-	SDL_Texture* texture = NULL;
-	gboolean bGameDone = FALSE;
-	gboolean bNetworkGame = FALSE;
-	gboolean bCanRender = TRUE;
-
 	// Initialise SDL
-	CHK_ExitIf(SDL_Init(SDL_INIT_VIDEO) < 0,"SDL could not initialize!",SDL_GetError());
-
-	window = GetSDLWindow(SCREEN_WIDTH, SCREEN_HEIGHT, window);
-	windowRenderer = GetSDLWindowRenderer(windowRenderer, window);
+	CHK_ExitIf(SDL_Init(SDL_INIT_VIDEO) < 0, "SDL could not initialize!", (char*)SDL_GetError());
 
 	// Initialize SDL Image extension
-	CHK_ExitIf(!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG), "SDL_image could not initialize!",IMG_GetError());
+	CHK_ExitIf(!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG), "SDL_image could not initialize!", (char*)IMG_GetError());
+}
 
-	texture = GetSDLTexture(texture, windowRenderer);
+void CleanupResources(struct GameWorldData* gameWorldData)
+{
+	SDL_DestroyRenderer(gameWorldData->windowRenderer);
+	SDL_DestroyWindow(gameWorldData->window);
+
+	gameWorldData->window = NULL;
+	gameWorldData->windowRenderer = NULL;
+
+	IMG_Quit();
+	SDL_Quit();
+
+	free(gameWorldData);
+}
+
+struct GameWorldData* InitGameWorldData()
+{
+	struct GameWorldData* gameWorldData = malloc(sizeof(struct GameWorldData));
+	CHK_ExitIf(gameWorldData == NULL,"malloc failed","creatiung gameworld data");
+
+	gameWorldData->x = 0;
+	gameWorldData->y = 0;
+	gameWorldData->w = 100;
+	gameWorldData->h = 100;
+	gameWorldData->window = NULL;
+	gameWorldData->windowRenderer = NULL;
+	gameWorldData->bGameDone = 0;
+	gameWorldData->bNetworkGame = 0;
+	gameWorldData->bCanRender = 1;
+	return gameWorldData;
+}
+
+int main(int argc, char *args[])
+{
+	GameWorldData* gameWorldData = InitGameWorldData();
+	SDL_Texture* texture = NULL;
+
+	InitSDL();
+
+	gameWorldData->window = GetSDLWindow(SCREEN_WIDTH, SCREEN_HEIGHT);
+	gameWorldData->windowRenderer = GetSDLWindowRenderer(gameWorldData->window);
+
+	texture = GetSDLTexture("texture.png", gameWorldData->windowRenderer);
 
 	tickCountAtLastCall = ticks();
 
-	while(!bGameDone) {
+	while(!gameWorldData->bGameDone) {
 		newTime = ticks();
 		frameTicks = 0;
 		numLoops = 0;
@@ -503,31 +604,25 @@ int main(int argc, char *args[])
 
 		// New frame, happens consistently every 50 milliseconds. Ie 20 times a second.
 		while((ticksSince) > TICK_TIME && numLoops < MAX_LOOPS ) {
-			GameTickRun(); // logic/update
+			GameTickRun(gameWorldData); // logic/update
 
 			// tickCountAtLastCall is now been +TICK_TIME more since the last time. update it
 			tickCountAtLastCall += TICK_TIME;
 
 			frameTicks += TICK_TIME; numLoops++;
 			ticksSince = newTime - tickCountAtLastCall;
-
 		}
+
 		IndependantTickRun(frameTicks); // handle player input, general housekeeping
-		if(!bNetworkGame && (ticksSince > TICK_TIME))
+
+		if(!gameWorldData->bNetworkGame && (ticksSince > TICK_TIME)) {
 			tickCountAtLastCall = newTime - TICK_TIME;
-		if(bCanRender) {
+		} else if(gameWorldData->bCanRender) {
 			float percentOutsideFrame = (ticksSince/TICK_TIME)*100;
-			GameDrawWithInterpolation(percentOutsideFrame);
-			renderTextture(windowRenderer, texture);
+			GameDrawWithInterpolation(percentOutsideFrame,gameWorldData);
 		}
-
 	}
-
-	SDL_DestroyRenderer(windowRenderer);
-	SDL_DestroyWindow(window);
-	window = NULL;
-	windowRenderer = NULL;
-	IMG_Quit();
-	SDL_Quit();
+	puts("Game done");
+	CleanupResources(gameWorldData);
 	return 0;
 }

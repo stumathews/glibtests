@@ -11,6 +11,6 @@ autoreconf -ivf -I /c/gtk+/share/aclocal/
 # copy i686-sql2-package/lib to /lib and i686-sdl2package/include/SDL to /include
 # might need to run this to find sdl2 pkg-config files
 
-PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+PKG_CONFIG_PATH=/lib/pkgconfig
 export PKG_CONFIG_PATH
  

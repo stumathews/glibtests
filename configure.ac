@@ -6,6 +6,7 @@ AC_CONFIG_HEADERS([config.h])
  
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_CC_STDC
 PKG_PROG_PKG_CONFIG([0.27])
 PKG_CHECK_MODULES([GLIB], [glib-2.0 >= 2.26.0])
 PKG_CHECK_MODULES([SDL2], [sdl2 >= 2.0])
