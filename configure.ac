@@ -15,6 +15,9 @@ AC_SUBST([GLIB_CFLAGS])
 AC_SUBST([GLIB_LIBS])
 AC_SUBST([SDL2_CFLAGS])
 AC_SUBST([SDL2_LIBS])
+
+AC_SUBST([LIBSTU_CLAGS], ["-I /c/Users/Stuart/git/stulibc/src/includes"])
+AC_SUBST([LIBSTU_LIBS],["-L/usr/local/lib -lstu"])
  
 # Checks for header files.
  

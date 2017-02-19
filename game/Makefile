@@ -48,7 +48,8 @@ PROGRAMS = $(bin_PROGRAMS)
 am_gameloop_OBJECTS = gameloop-gameloop.$(OBJEXT)
 gameloop_OBJECTS = $(am_gameloop_OBJECTS)
 am__DEPENDENCIES_1 =
-gameloop_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+gameloop_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 gameloop_LINK = $(CCLD) $(gameloop_CFLAGS) $(CFLAGS) \
 	$(gameloop_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I. -I$(top_builddir)
@@ -91,6 +92,8 @@ INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LDFLAGS = 
 LIBOBJS = 
 LIBS = 
+LIBSTU_CLAGS = -I /c/Users/Stuart/git/stulibc/src/includes
+LIBSTU_LIBS = -L/usr/local/lib -lstu
 LTLIBOBJS = 
 MAKEINFO = ${SHELL} /c/Users/Stuart/git/glibtests/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
@@ -155,9 +158,9 @@ top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
 gameloop_SOURCES = gameloop.c
-gameloop_CFLAGS = $(SDL2_CFLAGS) $(GLIB_CFLAGS) 
+gameloop_CFLAGS = $(SDL2_CFLAGS) $(GLIB_CFLAGS)  $(LIBSTU_CLAGS)
 gameloop_LDFLAGS = -mconsole -mwindows
-gameloop_LDADD = $(SDL2_LIBS) $(GLIB_LIBS) #-lwinmm 
+gameloop_LDADD = $(SDL2_LIBS) $(GLIB_LIBS) $(LIBSTU_LIBS) -lSDL2_image #-lwinmm 
 all: all-am
 
 .SUFFIXES:

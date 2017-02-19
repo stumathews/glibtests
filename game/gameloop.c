@@ -1,12 +1,16 @@
 #include <stdio.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <glib.h>
+#include <safetychecking.h>
 
 // 20 times a second = 50 milliseconds
 // 1 second is 20*50 = 1000 milliseconds
 
 #define TICK_TIME 50
 #define MAX_LOOPS 4
+const int SCREEN_WIDTH = 640;
+const int SCREEN_HEIGHT = 480;
 
 struct GameWorldData {} *gameworld_data;
 int frameTicks;
@@ -184,7 +188,6 @@ long ticks()
 
 void IndependantTickRun(long frameTime)
 {
-	// fetch input from SDL
 }
 
 
@@ -385,15 +388,57 @@ void GameDrawWithInterpolation(float percentWithinTick)
 }
 
 
+SDL_Texture* loadTexture(char* path, SDL_Renderer* renderer)
+{
+	//The final texture
+	SDL_Texture* newTexture = NULL;
 
+	//Load image at specified path
+	SDL_Surface* loadedSurface = IMG_Load(path);
+	if (loadedSurface == NULL)
+	{
+		printf("Unable to load image %s! SDL_image Error: %s\n", path, IMG_GetError());
+	}
+	else
+	{
+		//Create texture from surface pixels
+		newTexture = SDL_CreateTextureFromSurface(renderer, loadedSurface);
+		if (newTexture == NULL)
+		{
+			printf("Unable to create texture from %s! SDL Error: %s\n", path, SDL_GetError());
+		}
+
+		//Get rid of old loaded surface
+		SDL_FreeSurface(loadedSurface);
+	}
+
+	return newTexture;
+}
 
 int main(int argc, char *args[])
 {
 	SDL_Window* window = NULL;
 	SDL_Surface* screenSurface = NULL;
+	SDL_Renderer* windowRenderer = NULL;
+	SDL_Texture* texture = NULL;
 	gboolean bGameDone = FALSE;
 	gboolean bNetworkGame = FALSE;
 	gboolean bCanRender = TRUE;
+
+	CHK_ExitIf(SDL_Init(SDL_INIT_VIDEO) < 0,"SDL could not initialize!",SDL_GetError());
+
+	window = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+	CHK_ExitIf(window == NULL, "Window could not be created!",SDL_GetError());
+
+	windowRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	CHK_ExitIf(windowRenderer == NULL, "Renderer could not be created!",SDL_GetError());
+
+	SDL_SetRenderDrawColor(windowRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	CHK_ExitIf(!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG), "SDL_image could not initialize!",IMG_GetError());
+
+	//Load PNG texture
+	texture = loadTexture("texture.png", windowRenderer);
+	CHK_ExitIf(texture == NULL, "could not load textture","texture");
 
 	tickCountAtLastCall = ticks();
 
@@ -412,17 +457,33 @@ int main(int argc, char *args[])
 
 			frameTicks += TICK_TIME; numLoops++;
 			ticksSince = newTime - tickCountAtLastCall;
-			printf("done\n");
+
 		}
 		IndependantTickRun(frameTicks); // handle player input, general housekeeping
 		if(!bNetworkGame && (ticksSince > TICK_TIME))
 			tickCountAtLastCall = newTime - TICK_TIME;
 		if(bCanRender) {
 			float percentOutsideFrame = (ticksSince/TICK_TIME)*100;
-			printf("d");
 			GameDrawWithInterpolation(percentOutsideFrame);
+			//
+			//Clear screen
+			SDL_RenderClear(windowRenderer);
+
+			//Render texture to screen
+			SDL_RenderCopy(windowRenderer, texture, NULL, NULL);
+
+			//Update screen
+			SDL_RenderPresent(windowRenderer);
+			//
 		}
 
 	}
+
+	SDL_DestroyRenderer(windowRenderer);
+	SDL_DestroyWindow(window);
+	window = NULL;
+	windowRenderer = NULL;
+	IMG_Quit();
+	SDL_Quit();
 	return 0;
 }
