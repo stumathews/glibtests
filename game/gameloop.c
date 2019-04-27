@@ -29,6 +29,7 @@ typedef struct GameWorldData GameWorldData;
 int frameTicks;
 int numLoops;
 long tickCountAtLastCall,newTime;
+SDL_Texture* texture = NULL;
 
 SDL_Rect renderRectangle(const int x, const int y, const int w, const int h, struct GameWorldData *gameWorldData);
 void renderLine(SDL_Renderer* toRenderer);
@@ -86,10 +87,18 @@ void sense_player_input(struct GameWorldData *gameWorldData)
  */
 void determine_restrictions(struct GameWorldData* data)
 {
-	// check the gameworld data to determine whats around the character physically (geometric restrictions)
+	// check for geometric restrictions via the gameworld data to determine whats around the character physically
 	// ie. collision detection
 
-	// check for logical restrictions such as the state the player must be in to perform certain interactions
+	// check for logical restrictions ie the state the player must be in to perform certain interactions
+	// ie do i have a door key to even though i'm trying to open the door in fron of me?
+
+	// use the gameworld data to understand where the player is (level) and what he has around him
+
+	// easy restrictions for tetris: 
+	// 1) bricks cannot move outside the screen, 
+	// 2) cannot fall beyond ground level
+	// 3) cannot continue falling if current brick is directly above any other previously fallen brick
 }
 
 /***
@@ -104,6 +113,10 @@ void update_player_state()
 
 	// Update the player's resultant state.
 
+	// Tetris: move/rotate the brick according to players input
+
+	// then: AddDefaultBehavior() for idle
+
 }
 
 /***
@@ -111,9 +124,16 @@ void update_player_state()
  */
 void player_update(struct GameWorldData *gameWorldData)
 {
+	// read from game controller
 	sense_player_input(gameWorldData);
+	// First see if we can perform what the payer wants us to do (we might be unable to, next to wall ie. cant move forward)
 	determine_restrictions(gameworld_data);
+	// Do what we can to update the players state based on the above and what the player tied to do
+	// so move the player's position if he asked to move and there was no obstacle etc.
 	update_player_state();
+
+	// If networked game:
+	// broadcast players state(position eg) to other players on the network
 }
 
 /***
@@ -130,7 +150,7 @@ void pre_select_active_zones()
  */
 void update_passive_elements()
 {
-	pre_select_active_zones();
+	pre_select_active_zones(); // only select elments that will affect gameplay
 }
 
 
@@ -144,7 +164,7 @@ void update_state(){}
  */
 void update_logic_based_elements()
 {
-	logic_sort_according_to_relevance();
+	logic_sort_according_to_relevance(); // only select elements that are important to the gameplay
 	execute_control_mechanism();
 	update_state();
 }
@@ -201,9 +221,15 @@ void ai_sort_according_to_gamplay_relevance()
 void update_ai_based_elements()
 {
 	ai_sort_according_to_gamplay_relevance();
-	sense_internal_state_and_goals();
-	sense_restrictions();
+	sense_internal_state_and_goals(); // goal: shoot down the player. internal state of element: position and heading, state of weapons systems and sustained damage
+	sense_restrictions(); // avoid collisions with wall if im an enemy ai element
+	// we know about our state and the players state now...
+	
+	// determine what the ai elements will do next (ai decisions may span several seconds or minutes of gameplay, probably refining
+	// the strategy/decision on each subsequent cycle here)
 	decision_engine();
+
+	// store that the enemy moved, or it ws shot so remove it from world data structure
 	update_world_data_structure();
 }
 
@@ -212,8 +238,8 @@ void update_ai_based_elements()
  */
 void update_active_elements()
 {
-	update_logic_based_elements();
-	update_ai_based_elements();
+	update_logic_based_elements(); // doors, elevators, movng platforms, real enemies with a distinctive behavior (simple)
+	update_ai_based_elements(); // real enemies with artificial intelligence behavior (more complex)
 }
 
 /***
@@ -221,22 +247,27 @@ void update_active_elements()
  */
 void world_update()
 {
-	update_passive_elements();
-	update_active_elements();
+	update_passive_elements(); //walls and most scenario items - have no attached behavior but play a key role in player restrictions
+	update_active_elements(); // flying birds, doors that open and close - must be checked to keep consistent, meaningful experiance
 
 }
 
+// This is basically the update functions which is run x FPS to maintain a timed series on constant updates 
+// that simulates constant movement for example or time intervals in a non-time related game (turn based game eg)
 void GameTickRun(struct GameWorldData *gameWorldData)
 {
 	// This game logic keeps the world simulator running:
 	player_update(gameWorldData);
+	
+	// make the game do something now...show game activity that the user will then respond to
+	// this generates gameplay
 	world_update();
 }
 
 // Gets time in milliseconds now
 long ticks()
 {
-	return g_get_real_time();
+	return g_get_real_time() / 1000;
 }
 
 void IndependantTickRun(long frameTime)
@@ -286,13 +317,15 @@ void npc_select_visible_subset()
 }
 
 /***
- * Render characters (Non passive Characters)
+ * Render characters (Non player Characters)
  * These are animated active elements, usually characters such as enemies
  */
 void NPC_Presentation()
 {
-	npc_select_visible_subset();
-	npc_animate();
+	npc_select_visible_subset(); //only thoe close to the player or affecting him are to be processed. Visibility check is usually used
+	npc_animate(); // keyframed to skeletal animations represent a current snapshot of how the character must look for a given frame
+	
+				   // some animation methods will require specific rendering algorithms to characters will need to be rendered seperately from passive world geometry
 	npc_pack_data();
 	npc_render_data();
 }
@@ -377,10 +410,13 @@ void world_render_geometry()
 
 }
 
+// chop off items outside of the players view
 void world_elements_clip()
 {
 
 }
+
+// remove hidden objects - such as backward facing surfaces
 void world_elements_cull()
 {
 
@@ -415,7 +451,8 @@ void world_select_resolution()
  */
 void send_audio_to_hardware()
 {
-	world_select_audible_sound_sources();
+
+	world_select_audible_sound_sources(); // distance vs volume metric + attenuation calcs to determine whats is audible to player
 	world_pack_audio_data();
 	world_send_audio_data_to_audio_hardware();
 }
@@ -425,8 +462,8 @@ void send_audio_to_hardware()
  */
 void send_geometry_to_hardware()
 {
-	world_pack_geometry();
-	world_render_geometry();
+	world_pack_geometry(); // vertexes are packed into memory
+	world_render_geometry(); //  send to card via OpenGL or DirectX
 }
 
 /***
@@ -434,11 +471,12 @@ void send_geometry_to_hardware()
  */
 void World_Presentation()
 {
-	world_select_visible_graphic_elements();
-	world_select_resolution();
+	// show just the visible part of the gameworld from the player's perspective
+	world_select_visible_graphic_elements(); // This will contain the 3d Rendering pipeline!
+	world_select_resolution(); // Choose suitable level of detail
 
-	send_geometry_to_hardware();
-	send_audio_to_hardware();
+	send_geometry_to_hardware();  //paint it onto the screen
+	send_audio_to_hardware(); 
 }
 
 void drawVerticalLineOfDots(const int SCREEN_HEIGHT, const int SCREEN_WIDTH,struct GameWorldData *gameWorldData)
@@ -450,6 +488,30 @@ void drawVerticalLineOfDots(const int SCREEN_HEIGHT, const int SCREEN_WIDTH,stru
 	}
 }
 
+void drawtexttureTopLeft(const int SCREEN_WIDTH, const int SCREEN_HEIGHT, struct GameWorldData* gameWorldData, SDL_Texture* texture)
+{
+	//Top left corner viewport
+	SDL_Rect topLeftViewport;
+	topLeftViewport.x = 0;
+	topLeftViewport.y = 0;
+	topLeftViewport.w = SCREEN_WIDTH / 2;
+	topLeftViewport.h = SCREEN_HEIGHT / 2;
+	SDL_RenderSetViewport(gameWorldData->windowRenderer, &topLeftViewport);
+	//Render texture to screen
+
+	SDL_RenderCopy(gameWorldData->windowRenderer, texture, NULL, NULL);
+}
+
+void ResetViewport(const int SCREEN_WIDTH, const int SCREEN_HEIGHT, struct GameWorldData* gameWorldData)
+{
+	SDL_Rect whole_screen;
+	whole_screen.x = 0;
+	whole_screen.y = 0;
+	whole_screen.w = SCREEN_WIDTH;
+	whole_screen.h = SCREEN_HEIGHT;
+	SDL_RenderSetViewport(gameWorldData->windowRenderer, &whole_screen);
+}
+
 /***
  * Render the game world (Presentation)
  * @param percentWithinTick
@@ -457,15 +519,24 @@ void drawVerticalLineOfDots(const int SCREEN_HEIGHT, const int SCREEN_WIDTH,stru
 void GameDrawWithInterpolation(float percentWithinTick, struct GameWorldData *gameWorldData)
 {
 	//Custom SDL drawing...
+
 	// renderTextture(windowRenderer, texture);
 
 	SDL_Rect fillRect = renderRectangle(gameWorldData->x, gameWorldData->y, 100,100, gameWorldData);
 	renderLine(gameWorldData->windowRenderer);
 	drawVerticalLineOfDots(SCREEN_HEIGHT, SCREEN_WIDTH, gameWorldData);
+
+	drawtexttureTopLeft(SCREEN_WIDTH, SCREEN_HEIGHT, gameWorldData, texture);
+	ResetViewport(SCREEN_WIDTH, SCREEN_HEIGHT, gameWorldData);
 	SDL_RenderPresent(gameWorldData->windowRenderer);
 
+	// Render the game work visually and sonically
 	World_Presentation();
+	
+	// Render non player characters next
 	NPC_Presentation();
+
+	// Render the player
 	Player_Presentation();
 }
 
@@ -585,14 +656,15 @@ struct GameWorldData* InitGameWorldData()
 int main(int argc, char *args[])
 {
 	GameWorldData* gameWorldData = InitGameWorldData();
-	SDL_Texture* texture = NULL;
+
+
 
 	InitSDL();
 
 	gameWorldData->window = GetSDLWindow(SCREEN_WIDTH, SCREEN_HEIGHT);
 	gameWorldData->windowRenderer = GetSDLWindowRenderer(gameWorldData->window);
 
-	texture = GetSDLTexture("texture.png", gameWorldData->windowRenderer);
+	//texture = GetSDLTexture("texture.png", gameWorldData->windowRenderer);
 
 	tickCountAtLastCall = ticks();
 
@@ -603,6 +675,8 @@ int main(int argc, char *args[])
 		long ticksSince = newTime - tickCountAtLastCall;
 
 		// New frame, happens consistently every 50 milliseconds. Ie 20 times a second.
+		// 20 times a second = 50 milliseconds
+		// 1 second is 20*50 = 1000 milliseconds
 		while((ticksSince) > TICK_TIME && numLoops < MAX_LOOPS ) {
 			GameTickRun(gameWorldData); // logic/update
 
